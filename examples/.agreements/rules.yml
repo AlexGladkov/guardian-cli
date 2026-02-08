@@ -1,0 +1,27 @@
+rules:
+  - id: domain_no_infra
+    description: Domain layer must not depend on infra
+    type: imports_forbidden
+    config:
+      from_globs: ["domain/**"]
+      forbid_globs: ["infra/**"]
+    severity: error
+
+  - id: money_minor_units
+    description: Money must use int minor units, not float/double
+    type: diff_pattern_forbidden
+    config:
+      forbidden_regexes:
+        - "\\bDouble\\b"
+        - "\\bfloat\\b"
+      only_in_paths: ["**/*.kt", "**/*.java", "**/*.ts"]
+    severity: warning
+
+  - id: public_api_stability
+    description: Public API changes require RFC tag in proposal
+    type: diff_pattern_requires
+    config:
+      required_regexes:
+        - "RFC:"
+      only_in_paths: ["sdk/public/**"]
+    severity: error

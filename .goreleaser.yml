@@ -1,0 +1,59 @@
+version: 2
+
+before:
+  hooks:
+    - go mod tidy
+
+builds:
+  - id: guardian
+    binary: guardian
+    main: ./cmd/guardian
+    env:
+      - CGO_ENABLED=0
+    goos:
+      - linux
+      - darwin
+      - windows
+    goarch:
+      - amd64
+      - arm64
+    ldflags:
+      - -s -w -X main.version={{.Version}}
+
+archives:
+  - id: guardian-archive
+    builds:
+      - guardian
+    format: tar.gz
+    name_template: "{{ .ProjectName }}_{{ .Version }}_{{ .Os }}_{{ .Arch }}"
+    format_overrides:
+      - goos: windows
+        format: zip
+
+checksum:
+  name_template: "checksums.txt"
+
+snapshot:
+  version_template: "{{ incpatch .Version }}-next"
+
+changelog:
+  sort: asc
+  filters:
+    exclude:
+      - "^docs:"
+      - "^test:"
+      - "^ci:"
+      - "^chore:"
+
+brews:
+  - name: guardian
+    repository:
+      owner: AlexGladkov
+      name: homebrew-tap
+    homepage: "https://github.com/AlexGladkov/guardian-cli"
+    description: "A constitutional engine for team agreements -- serverless, git-native, LLM-powered"
+    license: "MIT"
+    install: |
+      bin.install "guardian"
+    test: |
+      system "#{bin}/guardian", "--help"

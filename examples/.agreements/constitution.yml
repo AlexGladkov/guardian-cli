@@ -1,0 +1,41 @@
+governance:
+  voters:
+    - role: techlead
+    - role: architect
+    - role: product
+  quorum:
+    type: two_thirds
+    threshold: 0.66
+  forbid_self_approval: true
+  allow_vote_change: false
+  proposal_ttl_days: 30
+  per_rule_overrides:
+    payment_state_machine:
+      quorum:
+        type: unanimous
+  exceptions:
+    require_approval: false
+
+identity:
+  allowed_domains: ["example.com"]
+  require_signed_commits: false
+
+roles:
+  techlead:
+    members:
+      - email: ivan@example.com
+  architect:
+    members:
+      - email: maria@example.com
+  product:
+    members:
+      - email: alex@example.com
+
+llm:
+  provider: deepseek
+  endpoint: ""
+  model: ""
+  # API key is NEVER stored here; set GUARDIAN_LLM_API_KEY env var
+  prompts:
+    check_system: ""
+    propose_system: ""
