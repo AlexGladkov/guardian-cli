@@ -46,6 +46,31 @@ func PrintCheckReportHuman(w io.Writer, r *CheckReport) {
 		fmt.Fprintln(w)
 	}
 
+	// Show governance context if available.
+	if r.ProposalContext != nil {
+		hasContent := len(r.ProposalContext.AcceptedPending) > 0 || len(r.ProposalContext.Active) > 0
+		if hasContent {
+			fmt.Fprintln(w, "Governance Context")
+			fmt.Fprintln(w, "------------------")
+
+			if len(r.ProposalContext.AcceptedPending) > 0 {
+				fmt.Fprintln(w, "Accepted (awaiting finalization):")
+				for _, p := range r.ProposalContext.AcceptedPending {
+					fmt.Fprintf(w, "  [%s] %s (%s) - %s\n", p.ProposalType, p.ID, p.RuleID, p.Description)
+				}
+			}
+
+			if len(r.ProposalContext.Active) > 0 {
+				fmt.Fprintln(w, "Under review:")
+				for _, p := range r.ProposalContext.Active {
+					fmt.Fprintf(w, "  [%s] %s (%s) - %s\n", p.ProposalType, p.ID, p.RuleID, p.Description)
+				}
+			}
+
+			fmt.Fprintln(w)
+		}
+	}
+
 	passedStr := "PASSED"
 	if !r.Summary.Passed {
 		passedStr = "FAILED"

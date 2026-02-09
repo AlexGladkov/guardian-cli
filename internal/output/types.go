@@ -4,8 +4,25 @@ package output
 
 // CheckReport contains the results of a guardian check operation.
 type CheckReport struct {
-	Violations []ViolationReport `json:"violations"`
-	Summary    ReportSummary     `json:"summary"`
+	Violations      []ViolationReport `json:"violations"`
+	Summary         ReportSummary     `json:"summary"`
+	ProposalContext *ProposalContext  `json:"proposal_context,omitempty"`
+}
+
+// ProposalContext provides governance context about active proposals.
+type ProposalContext struct {
+	AcceptedPending []ProposalSummary `json:"accepted_pending,omitempty"`
+	Active          []ProposalSummary `json:"active,omitempty"`
+}
+
+// ProposalSummary is a lightweight representation of a proposal.
+type ProposalSummary struct {
+	ID           string `json:"id"`
+	RuleID       string `json:"rule_id"`
+	ProposalType string `json:"proposal_type"`
+	Status       string `json:"status"`
+	Description  string `json:"description"`
+	CreatedBy    string `json:"created_by"`
 }
 
 // ViolationReport describes a single rule violation found during a check.

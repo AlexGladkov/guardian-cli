@@ -73,6 +73,13 @@ func runCheck(args []string) int {
 		return 2
 	}
 
+	// Load proposals (non-fatal if directory doesn't exist).
+	proposals, err := loadAllProposalsFrom(agreementsDir)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Warning: loading proposals: %v\n", err)
+		proposals = nil
+	}
+
 	// Dereference exception pointers to values.
 	exceptionValues := make([]config.Exception, 0, len(exceptions))
 	for _, e := range exceptions {
@@ -121,11 +128,21 @@ func runCheck(args []string) int {
 		}
 	}
 
+	// Generate proposal warnings for accepted-but-not-finalized proposals.
+	proposalWarnings := generateProposalWarnings(proposals)
+	allViolations = append(allViolations, proposalWarnings...)
+	for range proposalWarnings {
+		engineResult.Warnings++
+	}
+
 	// Try LLM analysis for explanations (non-fatal if unavailable).
-	llmExplanations := tryLLMAnalysis(constitution, rulesFile, diffResult.DiffContent, allViolations)
+	llmExplanations := tryLLMAnalysis(constitution, rulesFile, diffResult.DiffContent, allViolations, proposals)
+
+	// Build proposal context for the report.
+	proposalCtx := buildProposalContext(proposals)
 
 	// Build report.
-	report := buildCheckReport(allViolations, engineResult.Errors, engineResult.Warnings, llmExplanations)
+	report := buildCheckReport(allViolations, engineResult.Errors, engineResult.Warnings, llmExplanations, proposalCtx)
 
 	// Output report.
 	if *jsonOutput {
@@ -172,6 +189,7 @@ func tryLLMAnalysis(
 	rulesFile *config.RulesFile,
 	diffContent string,
 	violations []engine.Violation,
+	proposals []*config.Proposal,
 ) map[string]string {
 	if len(violations) == 0 {
 		return nil
@@ -199,7 +217,7 @@ func tryLLMAnalysis(
 		})
 	}
 
-	analysis, err := client.AnalyzeCheck(diffContent, rulesFile.Rules, llmViolations)
+	analysis, err := client.AnalyzeCheck(diffContent, rulesFile.Rules, llmViolations, proposals)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Warning: LLM analysis failed: %v\n", err)
 		return nil
@@ -214,6 +232,7 @@ func buildCheckReport(
 	errorCount int,
 	warningCount int,
 	llmExplanations map[string]string,
+	proposalCtx *output.ProposalContext,
 ) *output.CheckReport {
 	report := &output.CheckReport{
 		Summary: output.ReportSummary{
@@ -221,6 +240,7 @@ func buildCheckReport(
 			Warnings: warningCount,
 			Passed:   errorCount == 0,
 		},
+		ProposalContext: proposalCtx,
 	}
 
 	for _, v := range violations {
@@ -248,6 +268,60 @@ func buildCheckReport(
 	}
 
 	return report
+}
+
+// buildProposalContext creates proposal context from loaded proposals.
+// Returns nil if there are no relevant proposals.
+func buildProposalContext(proposals []*config.Proposal) *output.ProposalContext {
+	if len(proposals) == 0 {
+		return nil
+	}
+
+	ctx := &output.ProposalContext{}
+
+	for _, p := range proposals {
+		summary := output.ProposalSummary{
+			ID:           p.ID,
+			RuleID:       p.RuleID,
+			ProposalType: p.ProposalType,
+			Status:       p.Status,
+			Description:  p.Change.Description,
+			CreatedBy:    p.CreatedBy,
+		}
+
+		switch p.Status {
+		case "accepted":
+			ctx.AcceptedPending = append(ctx.AcceptedPending, summary)
+		case "proposed":
+			ctx.Active = append(ctx.Active, summary)
+		}
+	}
+
+	if len(ctx.AcceptedPending) == 0 && len(ctx.Active) == 0 {
+		return nil
+	}
+
+	return ctx
+}
+
+// generateProposalWarnings creates warning violations for accepted proposals
+// that have not yet been finalized.
+func generateProposalWarnings(proposals []*config.Proposal) []engine.Violation {
+	var warnings []engine.Violation
+	for _, p := range proposals {
+		if p.Status != "accepted" {
+			continue
+		}
+		warnings = append(warnings, engine.Violation{
+			RuleID:   p.RuleID,
+			Severity: "warning",
+			Description: fmt.Sprintf(
+				"Proposal %q (%s) is accepted but not finalized. Run 'guardian finalize %s' to apply.",
+				p.ID, p.ProposalType, p.ID,
+			),
+		})
+	}
+	return warnings
 }
 
 // isAgreementsFile checks if a file path is within the .agreements directory.

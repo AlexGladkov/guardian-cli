@@ -137,7 +137,8 @@ func NewClient(cfg config.LLMConfig) (*Client, error) {
 
 // AnalyzeCheck sends diff content and violations to the LLM for analysis.
 // It returns explanations keyed by rule ID.
-func (c *Client) AnalyzeCheck(diffContent string, rules []config.Rule, violations []Violation) (*CheckAnalysis, error) {
+// If proposals is non-nil, governance context is included in the prompt.
+func (c *Client) AnalyzeCheck(diffContent string, rules []config.Rule, violations []Violation, proposals []*config.Proposal) (*CheckAnalysis, error) {
 	systemPrompt := GetCheckPrompt(c.prompts.CheckSystem)
 
 	var userContent strings.Builder
@@ -160,6 +161,39 @@ func (c *Client) AnalyzeCheck(diffContent string, rules []config.Rule, violation
 			fmt.Fprintf(&userContent, "- Diff snippet:\n```\n%s\n```\n", v.DiffSnippet)
 		}
 		userContent.WriteString("\n")
+	}
+
+	// Add governance context if proposals exist.
+	if len(proposals) > 0 {
+		var accepted, underReview []*config.Proposal
+		for _, p := range proposals {
+			switch p.Status {
+			case "accepted":
+				accepted = append(accepted, p)
+			case "proposed":
+				underReview = append(underReview, p)
+			}
+		}
+
+		if len(accepted) > 0 || len(underReview) > 0 {
+			userContent.WriteString("## Governance Context\n")
+
+			if len(accepted) > 0 {
+				userContent.WriteString("### Accepted Proposals (awaiting finalization)\n")
+				for _, p := range accepted {
+					fmt.Fprintf(&userContent, "- **%s** (%s %s): %s\n", p.ID, p.ProposalType, p.RuleID, p.Change.Description)
+				}
+				userContent.WriteString("\n")
+			}
+
+			if len(underReview) > 0 {
+				userContent.WriteString("### Proposals Under Review\n")
+				for _, p := range underReview {
+					fmt.Fprintf(&userContent, "- **%s** (%s %s): %s\n", p.ID, p.ProposalType, p.RuleID, p.Change.Description)
+				}
+				userContent.WriteString("\n")
+			}
+		}
 	}
 
 	userContent.WriteString("Please provide a brief explanation for each violation, keyed by rule_id. ")

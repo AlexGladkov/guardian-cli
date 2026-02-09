@@ -8,7 +8,7 @@ import (
 	"os"
 )
 
-const version = "0.1.1"
+const version = "0.1.2"
 
 const usageText = `Guardian - Constitutional governance for code
 

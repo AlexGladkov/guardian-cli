@@ -185,7 +185,7 @@ func TestAnalyzeCheck_OpenAI(t *testing.T) {
 		},
 	}
 
-	analysis, err := client.AnalyzeCheck("diff content", rules, violations)
+	analysis, err := client.AnalyzeCheck("diff content", rules, violations, nil)
 	require.NoError(t, err)
 	require.NotNil(t, analysis)
 	assert.Contains(t, analysis.Explanations, "test_rule")
@@ -257,7 +257,7 @@ func TestAnalyzeCheck_Claude(t *testing.T) {
 		},
 	}
 
-	analysis, err := client.AnalyzeCheck("diff", rules, violations)
+	analysis, err := client.AnalyzeCheck("diff", rules, violations, nil)
 	require.NoError(t, err)
 	require.NotNil(t, analysis)
 	assert.Contains(t, analysis.Explanations, "claude_rule")
@@ -376,7 +376,7 @@ func TestAnalyzeCheck_ServerError(t *testing.T) {
 	client, err := NewClient(cfg)
 	require.NoError(t, err)
 
-	_, err = client.AnalyzeCheck("diff", nil, nil)
+	_, err = client.AnalyzeCheck("diff", nil, nil, nil)
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "status 500")
 }
@@ -405,7 +405,7 @@ func TestAnalyzeCheck_APIError(t *testing.T) {
 	client, err := NewClient(cfg)
 	require.NoError(t, err)
 
-	_, err = client.AnalyzeCheck("diff", nil, nil)
+	_, err = client.AnalyzeCheck("diff", nil, nil, nil)
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "Rate limit exceeded")
 }
@@ -432,7 +432,7 @@ func TestAnalyzeCheck_EmptyChoices(t *testing.T) {
 	client, err := NewClient(cfg)
 	require.NoError(t, err)
 
-	_, err = client.AnalyzeCheck("diff", nil, nil)
+	_, err = client.AnalyzeCheck("diff", nil, nil, nil)
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "no choices")
 }
@@ -457,7 +457,7 @@ func TestAnalyzeCheck_Timeout(t *testing.T) {
 	// Override the timeout to be short for testing
 	client.httpClient.Timeout = 100 * time.Millisecond
 
-	_, err = client.AnalyzeCheck("diff", nil, nil)
+	_, err = client.AnalyzeCheck("diff", nil, nil, nil)
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "sending request")
 }
@@ -486,7 +486,7 @@ func TestAnalyzeCheck_ClaudeAPIError(t *testing.T) {
 	client, err := NewClient(cfg)
 	require.NoError(t, err)
 
-	_, err = client.AnalyzeCheck("diff", nil, nil)
+	_, err = client.AnalyzeCheck("diff", nil, nil, nil)
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "Authentication failed")
 }
@@ -513,7 +513,7 @@ func TestAnalyzeCheck_ClaudeEmptyContent(t *testing.T) {
 	client, err := NewClient(cfg)
 	require.NoError(t, err)
 
-	_, err = client.AnalyzeCheck("diff", nil, nil)
+	_, err = client.AnalyzeCheck("diff", nil, nil, nil)
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "no content")
 }
@@ -650,7 +650,7 @@ func TestAnalyzeCheck_InvalidJSON(t *testing.T) {
 	client, err := NewClient(cfg)
 	require.NoError(t, err)
 
-	_, err = client.AnalyzeCheck("diff", nil, nil)
+	_, err = client.AnalyzeCheck("diff", nil, nil, nil)
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "parsing response JSON")
 }
