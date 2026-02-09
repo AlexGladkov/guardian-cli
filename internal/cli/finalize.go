@@ -35,7 +35,7 @@ func runFinalize(args []string) int {
 	fs := flag.NewFlagSet("finalize", flag.ContinueOnError)
 	fs.Usage = func() { fmt.Fprint(os.Stderr, finalizeUsage) }
 
-	if err := fs.Parse(args); err != nil {
+	if err := fs.Parse(reorderArgs(args)); err != nil {
 		return 2
 	}
 

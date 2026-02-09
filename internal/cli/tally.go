@@ -30,7 +30,7 @@ func runTally(args []string) int {
 	jsonOutput := fs.Bool("json", false, "Output results as JSON")
 	fs.Usage = func() { fmt.Fprint(os.Stderr, tallyUsage) }
 
-	if err := fs.Parse(args); err != nil {
+	if err := fs.Parse(reorderArgs(args)); err != nil {
 		return 2
 	}
 

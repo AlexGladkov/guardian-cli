@@ -39,7 +39,8 @@ func runVote(args []string) int {
 	comment := fs.String("comment", "", "Vote comment")
 	fs.Usage = func() { fmt.Fprint(os.Stderr, voteUsage) }
 
-	if err := fs.Parse(args); err != nil {
+	// Reorder args so flags work in any position (before or after proposal_id).
+	if err := fs.Parse(reorderArgs(args)); err != nil {
 		return 2
 	}
 

@@ -29,7 +29,7 @@ func runWithdraw(args []string) int {
 	fs := flag.NewFlagSet("withdraw", flag.ContinueOnError)
 	fs.Usage = func() { fmt.Fprint(os.Stderr, withdrawUsage) }
 
-	if err := fs.Parse(args); err != nil {
+	if err := fs.Parse(reorderArgs(args)); err != nil {
 		return 2
 	}
 

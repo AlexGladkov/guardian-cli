@@ -85,36 +85,65 @@ func marshalToYAML(v interface{}) ([]byte, error) {
 	return yaml.Marshal(v)
 }
 
+// stdinScanner is a shared scanner for reading interactive input from stdin.
+// Using a single scanner avoids losing buffered data between calls.
+var stdinScanner = bufio.NewScanner(os.Stdin)
+
 // promptLine reads a single line of input from stdin with a prompt.
 func promptLine(prompt string) (string, error) {
 	fmt.Fprint(os.Stdout, prompt)
-	scanner := bufio.NewScanner(os.Stdin)
-	if !scanner.Scan() {
-		if err := scanner.Err(); err != nil {
+	if !stdinScanner.Scan() {
+		if err := stdinScanner.Err(); err != nil {
 			return "", fmt.Errorf("reading input: %w", err)
 		}
 		return "", fmt.Errorf("no input received")
 	}
-	return strings.TrimSpace(scanner.Text()), nil
+	return strings.TrimSpace(stdinScanner.Text()), nil
 }
 
 // promptMultiLine reads multiple lines until an empty line.
 func promptMultiLine(prompt string) (string, error) {
 	fmt.Fprintln(os.Stdout, prompt)
 	fmt.Fprintln(os.Stdout, "(Enter an empty line to finish)")
-	scanner := bufio.NewScanner(os.Stdin)
 	var lines []string
-	for scanner.Scan() {
-		line := scanner.Text()
+	for stdinScanner.Scan() {
+		line := stdinScanner.Text()
 		if strings.TrimSpace(line) == "" {
 			break
 		}
 		lines = append(lines, line)
 	}
-	if err := scanner.Err(); err != nil {
+	if err := stdinScanner.Err(); err != nil {
 		return "", fmt.Errorf("reading input: %w", err)
 	}
 	return strings.Join(lines, "\n"), nil
+}
+
+// reorderArgs moves flag-like arguments (starting with -) before positional
+// arguments so that Go's flag package parses them correctly regardless of order.
+// Flag arguments that take a value (e.g., --comment "text") are kept together.
+func reorderArgs(args []string) []string {
+	var flags, positional []string
+	for i := 0; i < len(args); i++ {
+		if strings.HasPrefix(args[i], "-") {
+			flags = append(flags, args[i])
+			// If this flag has a value argument (not another flag), include it too.
+			if i+1 < len(args) && !strings.HasPrefix(args[i+1], "-") && strings.Contains(args[i], "=") == false {
+				// Check if the flag is a boolean flag (--yes, --no, --help, etc.)
+				// by seeing if it doesn't need a value.
+				name := strings.TrimLeft(args[i], "-")
+				if name != "yes" && name != "no" && name != "help" &&
+					name != "json" && name != "llm" && name != "force" &&
+					name != "notify" && name != "since-last-check" && name != "quiet" && name != "no-fetch" {
+					i++
+					flags = append(flags, args[i])
+				}
+			}
+		} else {
+			positional = append(positional, args[i])
+		}
+	}
+	return append(flags, positional...)
 }
 
 // repoRoot returns the parent directory of the .agreements/ directory,

@@ -34,7 +34,7 @@ func runPropose(args []string) int {
 	useLLM := fs.Bool("llm", false, "Use LLM to draft proposal text")
 	fs.Usage = func() { fmt.Fprint(os.Stderr, proposeUsage) }
 
-	if err := fs.Parse(args); err != nil {
+	if err := fs.Parse(reorderArgs(args)); err != nil {
 		return 2
 	}
 
