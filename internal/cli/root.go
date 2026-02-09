@@ -27,6 +27,7 @@ Commands:
   hooks            Install or uninstall git hooks
   history          Show finalized proposal history
   exception        Manage rule exceptions
+  constitution     Show current constitution
   llm              LLM configuration management
 
 Flags:
@@ -77,6 +78,8 @@ func Run(args []string) int {
 		return runHistory(commandArgs)
 	case "exception":
 		return runException(commandArgs)
+	case "constitution":
+		return runConstitution(commandArgs)
 	case "llm":
 		return runLLM(commandArgs)
 	default:
